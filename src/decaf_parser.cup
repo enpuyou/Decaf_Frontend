@@ -1,0 +1,272 @@
+import java_cup.runtime.*;
+import java.util.*;
+import java.io.*;
+
+action code {:
+
+  Hashtable table = new Hashtable();
+
+:};
+
+parser code {:
+
+    public void report_error(String message, Object info) {
+        StringBuilder m = new StringBuilder("Error");
+
+        if (info instanceof java_cup.runtime.Symbol) {
+            java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
+            if (s.left >= 0) {
+                m.append(" in line "+(s.left+1));
+                if (s.right >= 0)
+                    m.append(", column "+(s.right+1));
+            }
+        }
+        m.append(" : "+message);
+        System.err.println(m);
+    }
+
+    public void report_fatal_error(String message, Object info) {
+        report_error(message, info);
+        System.exit(1);
+    }
+:};
+
+/** Terminals */
+
+terminal           AND, OR, NOT, BOOL; // boolean
+terminal           INT, DOUBLE, STR, NEW_ARRAY;
+terminal           TRUE, FALSE;
+
+// flow
+terminal           VOID, NULL, THIS, IMPLEM, CLASS, INTERF, EXTENDS;
+terminal           IF, ELSE, RETURN, BREAK, NEW;
+terminal           WHILE, FOR;
+
+terminal           PRINT, READLN, READINT;  // commands
+terminal           ASSIGN;
+terminal   	       EQ, LT, LESS_EQ, GT, GREATER_EQ, NOT_EQ;
+
+terminal           MOD, SEMICOLON, DOT, COMMA, PLUS, MINUS, TIMES, DIVIDE, OPEN_PAREN, CLOSE_PAREN, OPEN_BRACKET, CLOSE_BRACKET, OPEN_BRACE, CLOSE_BRACE;
+terminal Integer   NUM;
+terminal Integer   DOUBLENUM;
+terminal Integer   DOUBLE_SCI;
+terminal String    IDENTIFIER;
+terminal String    STRING;
+
+
+/** Non-terminals **/
+non terminal Expr;
+non terminal LValue;
+non terminal Call;
+non terminal Actuals;
+non terminal Constant;
+
+non terminal VariableDecl;
+non terminal FunctionDecl;
+non terminal ClassDecl;
+non terminal InterfaceDecl;
+
+non terminal Variable;
+non terminal Type;
+non terminal Formals;
+non terminal Prototype;
+
+non terminal StmtBlock;
+non terminal Stmt;
+non terminal IfStmt;
+non terminal WhileStmt;
+non terminal ForStmt;
+non terminal BreakStmt;
+non terminal ReturnStmt;
+non terminal PrintStmt;
+non terminal SimpleStmt;
+
+non terminal Program;
+non terminal ElseClause;
+non terminal ExtendsClause;
+non terminal ImplemClause;
+non terminal ClassList;
+non terminal FieldList;
+non terminal VariableList;
+non terminal StmtList;
+non terminal Receiver;
+non terminal ExprList;
+non terminal IdentList;
+
+precedence left OR;
+precedence left AND;
+precedence nonassoc EQ, NOT_EQ;
+precedence nonassoc LESS_EQ, GREATER_EQ, LT, GT;
+precedence left PLUS, MINUS;
+precedence left TIMES, DIVIDE, MOD;
+precedence nonassoc NOT;
+precedence nonassoc OPEN_BRACKET, DOT;
+precedence nonassoc CLOSE_PAREN;
+precedence nonassoc ELSE;
+
+start with Program;
+
+/* The Grammar */
+Program         ::=   ClassList
+								  ;
+
+ClassList       ::=   ClassList ClassDecl
+                	|   ClassDecl
+									|		InterfaceDecl
+                  |   FunctionDecl
+                  |   VariableDecl
+									;
+
+InterfaceDecl		::=   INTERF IDENTIFIER OPEN_BRACE Prototype CLOSE_BRACE
+									;
+
+Prototype				::=   Prototype Type IDENTIFIER OPEN_PAREN Formals CLOSE_PAREN SEMICOLON
+									| 	/* empty */
+									;
+
+ClassDecl       ::=   CLASS IDENTIFIER ExtendsClause ImplemClause OPEN_BRACE FieldList CLOSE_BRACE
+									;
+
+VariableDecl    ::=   Variable SEMICOLON
+									;
+
+Variable        ::=   Type IDENTIFIER
+									;
+
+Type            ::=   INT
+									|   DOUBLE
+                	|   BOOL
+                	|   STR
+                	|   CLASS IDENTIFIER
+                	|   Type OPEN_BRACKET CLOSE_BRACKET
+									|   VOID
+									;
+
+ExtendsClause   ::=   EXTENDS IDENTIFIER
+                  |   /* empty */
+								  ;
+
+ImplemClause   	::=   IMPLEM IdentList
+								  |  /* empty */
+									;
+
+FieldList       ::=   FieldList VariableDecl
+                	|   FieldList FunctionDecl
+                	|   /* empty */
+									;
+
+Formals         ::=   VariableList
+                	|   /* empty */
+									;
+
+VariableList    ::=   VariableList COMMA Variable
+                  |   Variable
+									;
+
+FunctionDecl    ::=   Type IDENTIFIER OPEN_PAREN Formals CLOSE_PAREN StmtBlock
+									;
+
+StmtBlock      	::=   OPEN_BRACE StmtList CLOSE_BRACE
+								 	;
+
+StmtList       	::=   StmtList Stmt
+                 	|   /* empty */
+								 	;
+
+Stmt           	::=   VariableDecl
+                 	|   SimpleStmt SEMICOLON
+                 	|   IfStmt
+                 	|   WhileStmt
+                 	|   ForStmt
+                 	|   ReturnStmt SEMICOLON
+                 	|   PrintStmt SEMICOLON
+                 	|   BreakStmt SEMICOLON
+                 	|   StmtBlock
+								 	;
+
+SimpleStmt      ::=   LValue ASSIGN Expr
+				        	|   Call
+                	|   /* empty */
+									;
+
+Receiver        ::=   Expr DOT
+                	|   /* empty */
+									;
+
+LValue          ::=   Receiver IDENTIFIER
+                	|   Expr OPEN_BRACKET Expr CLOSE_BRACKET
+									;
+
+Call            ::=   Receiver IDENTIFIER OPEN_PAREN Actuals CLOSE_PAREN
+									;
+
+Expr            ::=   LValue
+                	|   Call
+                	|   Constant
+                	|	  Expr PLUS Expr
+                	|   Expr MINUS Expr
+                	|   Expr TIMES Expr
+                	|   Expr DIVIDE Expr
+                	|   Expr MOD Expr
+                	|   Expr EQ Expr
+                	|   Expr NOT_EQ Expr
+                	|   Expr LT Expr
+                	|   Expr GT Expr
+                	|   Expr LESS_EQ Expr
+                	|   Expr GREATER_EQ Expr
+                	|   Expr AND Expr
+                	|   Expr OR Expr
+                	|   OPEN_PAREN Expr CLOSE_PAREN
+                	|   MINUS Expr
+                	|   NOT Expr
+                	|   READINT OPEN_PAREN CLOSE_PAREN
+                	|   READLN OPEN_PAREN CLOSE_PAREN
+                	|   THIS
+                	|   NEW IDENTIFIER
+									|   NEW_ARRAY OPEN_PAREN Expr COMMA Type CLOSE_PAREN
+									;
+
+
+Constant        ::=   NUM
+									| 	DOUBLENUM
+                	|   NULL
+									|		DOUBLE_SCI
+                  |		STRING
+									|   TRUE
+									|   FALSE
+									;
+
+Actuals         ::=   ExprList
+                	|   /* empty */
+									;
+
+ExprList        ::=   ExprList COMMA Expr
+                	|   Expr
+									;
+
+IdentList        ::=   IdentList COMMA IDENTIFIER
+									|   IDENTIFIER
+									;
+
+WhileStmt       ::=   WHILE OPEN_PAREN Expr CLOSE_PAREN Stmt
+									;
+
+ForStmt         ::=   FOR OPEN_PAREN SimpleStmt SEMICOLON Expr SEMICOLON SimpleStmt CLOSE_PAREN Stmt
+                  ;
+
+BreakStmt       ::=   BREAK
+									;
+
+IfStmt          ::=   IF OPEN_PAREN Expr CLOSE_PAREN Stmt ElseClause
+									;
+
+ElseClause      ::=   ELSE Stmt
+                	|   /* empty */
+									;
+
+ReturnStmt      ::=   RETURN Expr
+                	|   RETURN
+									;
+
+PrintStmt       ::=   PRINT OPEN_PAREN ExprList CLOSE_PAREN
+									;

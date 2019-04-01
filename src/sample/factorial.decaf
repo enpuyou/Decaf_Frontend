@@ -1,0 +1,14 @@
+class factorial{
+  int factorial(int a){
+	 if(a==0){
+    return 1;
+	 } else {
+		 return (a*x(a-1));
+   }
+  }
+
+  void main(){
+    int num;
+	  num = factorial(10);
+    print(num);
+  }

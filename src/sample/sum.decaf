@@ -1,0 +1,10 @@
+class sum{
+	void main(){
+		int x;
+		x = 0;
+		for (i < 99)
+			sum = sum+1;
+		)
+		print(sum);
+	}
+}
